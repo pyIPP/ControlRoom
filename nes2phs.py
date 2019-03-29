@@ -1,5 +1,4 @@
-import sys, os
-sys.path.append('/afs/ipp/home/g/git/python/repository')
+import os
 import numpy as np
 import resp_mat
 from scipy.io import netcdf
