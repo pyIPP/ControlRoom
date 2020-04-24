@@ -42,9 +42,12 @@ lbl_d = {'bt' : 'Beam-target neutrons per unit time and energy', \
          'th' : 'Thermonuclear neutrons per unit time and energy', \
          'tot': 'Neutrons per unit time and energy'}
 
+crpy_dir = os.path.dirname(os.path.realpath(__file__))
+
+
 def los_nes():
 
-    f_dic = '%s/nes.pkl' %os.getenv('CR_PY')
+    f_dic = '%s/nes.pkl' %crpy_dir
     f = open(f_dic, 'rb')
     setup_d = pickle.load(f)
     f.close()
@@ -215,7 +218,7 @@ def los_nes():
 
 # NetCDF file output
 
-        dir_out = ('%s/output/%s' %(os.getenv('CR_PY'), code))
+        dir_out = ('%s/output/%s' %(crpy_dir, code))
         os.system('mkdir -p %s' %dir_out)
         ftmp  = os.path.basename(f_dist)
         fname, ext = os.path.splitext(ftmp)

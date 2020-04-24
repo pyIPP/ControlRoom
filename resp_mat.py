@@ -230,7 +230,7 @@ if __name__ == "__main__":
         for jplot in range(nplots):
             ax = fig1.add_subplot(n_rows, n_cols, jplot+1)
             ax.set_xlabel('#Channel')
-            ax.plot(range(int(rsp.ndim[jplot])), rsp.spec[jplot], 'b-')
+            ax.plot(rsp.spec[jplot], 'b-')
             ax.text(.5, .85, '%s [MeV]' %rsp.en2[jplot], ha='center', transform=ax.transAxes)
 
         fig1.canvas.mpl_connect('button_press_event', fconf.on_click)

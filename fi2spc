@@ -1,0 +1,13 @@
+#!/bin/bash -f
+
+export CONTROLROOM_DATADIR=/afs/ipp/home/g/git/ControlRoom
+export PYTHONPATH=/afs/ipp/home/g/git/ControlRoom/lib/python2.7/site-packages
+
+source /etc/profile.d/modules.sh
+module purge
+module load anaconda/3
+module load intel/18.0.5
+module load impi/2018.4
+module load impi-interactive/1
+
+/afs/ipp/home/g/git/python/ControlRoom/fi2nspec.py

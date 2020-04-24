@@ -84,6 +84,6 @@ if __name__ == '__main__':
     phs1 = NES2PHS(fnes, f_rm=rm1)
     phs2 = NES2PHS(fnes, f_rm=rm2)
     
-    plt.plot(range(len(phs1['bt'])), phs1['bt'], 'g-')
-    plt.plot(range(len(phs2['bt'])), phs2['bt'], 'r-')
+    plt.plot(phs1['bt'], 'g-')
+    plt.plot(phs2['bt'], 'r-')
     plt.show()

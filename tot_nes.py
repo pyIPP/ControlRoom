@@ -1,3 +1,7 @@
+import os
+crwd = os.path.dirname(os.path.realpath(__file__))
+
+
 def spec_loc(A_in):
 
     import numpy as np
@@ -155,7 +159,7 @@ def TOT_NES(inp_d, code='tr'):
         fbm_eV[:, :, EindH] = 0
 
         log.info('Calculating BT')
-        print nd_cell[0], ti_cell[0], nfast[0], fbm_eV[0, :, :].ravel(), E_eV, mu
+        print(nd_cell[0], ti_cell[0], nfast[0], fbm_eV[0, :, :].ravel(), E_eV, mu)
         pool = Pool(cpu_count())
         bt = pool.map(spec_loc, [( nd_cell[jc], ti_cell[jc], nfast[jc], fbm_eV[jc, :, :].ravel(), E_eV, mu, E_min, E_max, Ebins, samples, 'bt') for jc in range(n_cells)] )
         pool.close()
@@ -243,7 +247,7 @@ def TOT_NES(inp_d, code='tr'):
 if __name__ == '__main__':
 
     import os, pickle
-    f_setup = '%s/nes.pkl' %os.getenv('CR_PY')
+    f_setup = '%s/nes.pkl' %crpy_dir
 
     f = open(f_setup, 'rb')
     setup_d = pickle.load(f)

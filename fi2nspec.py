@@ -1,17 +1,31 @@
+#!/usr/bin/env python
+
 import sys, os, pickle, logging
-sys.path.append('/afs/ipp/home/g/git/python/trgui')
-from multiprocessing import Pool, cpu_count
+sys.path.append('/afs/ipp/aug/ads-diags/common/python/lib')
 
 import numpy as np
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+try:
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk as nt2tk
+except:
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as nt2tk
 from matplotlib.figure import Figure
 import matplotlib.pylab as plt
-import Tkinter as tk
-from tkFileDialog import askopenfilename
-import tkMessageBox
+try:
+    import Tkinter as tk
+    import ttk
+    import tkFileDialog as tkfd
+    import tkMessageBox as tkmb
+except:
+    import tkinter as tk
+    from tkinter import ttk
+    from tkinter import filedialog as tkfd
+    from tkinter import messagebox as tkmb
 
-import tkhyper, read_equ, mom2rz, nes2phs, tot_nes
+import tkhyper, read_equ, mom2rz, nes2phs, tot_nes, plot_aug
 from scipy.io import netcdf
+
+crwd = os.path.dirname(os.path.realpath(__file__))
 
 fold = nes2phs.NES2PHS
 
@@ -20,15 +34,16 @@ sym_d = {'th':'r-', 'bt':'b-', 'bb':'g-', 'tot':'k-'}
 reacts = ('bt', 'th', 'bb')
 
 n_mpi = 10
-if 'impi' in os.getenv('PATH'):
-    pre_comm = 'nice mpirun -np %d python' %n_mpi
-    print('Running parallel version')
-else:
+mpi_root = os.getenv('I_MPI_ROOT')
+if mpi_root is None or mpi_root.strip() == '':
     pre_comm = 'python'
     print('Running serial version')
+else:
+    pre_comm = 'mpirun -n %d python' %n_mpi
+    print('Running parallel version')
 
-crwd = os.getenv('CR_PY')
-out_dir = '%s/output' %crwd
+crpy_dir = os.path.dirname(os.path.realpath(__file__))
+out_dir = '%s/output' %crpy_dir
 
 """
 The programs returns and plots the volume integrated neutron spectrum
@@ -55,17 +70,17 @@ def parse_los(f_los):
 
     pars_d = {}
     with open(f_los) as myfile:
-        head = [next(myfile) for x in xrange(25)]
+        head = [next(myfile) for x in range(25)]
     for line in head:
         for lbl in ('nshot', 'time', 'y1', 'y2', 'z1', 'z2'):
             if lbl in line:
                 tmp = line.split('=')
-                pars_d[lbl] = tmp[1].split()[0].strip()
+                pars_d[lbl] = float(tmp[1].split()[0])
         if 'Position' in line:
             tmp = line.split('=')
-            pars_d['xdet'] = tmp[1].split()[0]
-            pars_d['ydet'] = tmp[2].split()[0]
-            pars_d['zdet'] = tmp[3].split()[0]
+            pars_d['xdet'] = float(tmp[1].split()[0])
+            pars_d['ydet'] = float(tmp[2].split()[0])
+            pars_d['zdet'] = float(tmp[3].split()[0])
 
     return pars_d
 
@@ -131,7 +146,7 @@ class FI2SPECTRUM:
 
         fig1frame = tk.Frame(nesframe)
         self.nesfig = Figure()
-        self.nesfig.set_size_inches((9.8, 5.7))
+        self.nesfig.set_size_inches((7.8, 4.7))
         self.canv_nes = FigureCanvasTkAgg(self.nesfig, master=fig1frame)
         self.nesfig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.82)
 
@@ -155,8 +170,6 @@ class FI2SPECTRUM:
         self.axes2.set_ylim((0, 1e7))
         self.axes2.legend()
 
-# 
-
         self.fcdf = cdf_file.replace(home_dir, '~').replace(home2, '~')
         self.ffbm = fbm_file.replace(home_dir, '~').replace(home2, '~')
         self.fasc = asc_file.replace(home_dir, '~').replace(home2, '~')
@@ -168,7 +181,6 @@ class FI2SPECTRUM:
 
 # Get separatrix {R, z}
 
-        parse_d = parse_los(los_file)
         time = 6.5
         eq = read_equ.READ_EQU(cdf_file, tvec=time, rho=1)
         r_plot, z_plot = mom2rz.mom2rz(eq.rc, eq.rs, eq.zc, eq.zs)
@@ -179,39 +191,32 @@ class FI2SPECTRUM:
 
 # Plot LOS in poloidal section
 
-        Rpol = [parse_d['y1'], parse_d['y2']]
-        zpol = [parse_d['z1'], parse_d['z2']]
-
         fig2frame = tk.Frame(nesframe)
-        augfig = Figure()
-        augfig.set_size_inches((9.8, 4.0))
-        self.canv_los = FigureCanvasTkAgg(augfig, master=fig2frame)
-        augfig.subplots_adjust(left=0.08, bottom=0.1, right=0.95, top=0.9)
+        self.augfig = Figure()
+        self.augfig.set_size_inches((4.8, 2.0))
+        self.canv_los = FigureCanvasTkAgg(self.augfig, master=fig2frame)
+        self.augfig.subplots_adjust(left=0.08, bottom=0.1, right=0.95, top=0.9)
 
-        self.ax_pol = augfig.add_subplot(1, 2, 1, aspect='equal')
+        self.ax_pol = self.augfig.add_subplot(1, 2, 1, aspect='equal')
         self.ax_pol.set_xlim([ 0.5, 3])
         self.ax_pol.set_ylim([-1.5, 1.5])
         self.ax_pol.set_xlabel('R [cm]', labelpad=2)
         self.ax_pol.set_ylabel('z [cm]', labelpad=-14)
         self.pol_aug, = self.ax_pol.plot(r_sepx, z_sepx, '-', color='k', linewidth=0.5)
-        self.pol_los, = self.ax_pol.plot(Rpol, zpol, 'r-')
+        self.pol_los, = self.ax_pol.plot([], [], 'r-')
         try:
-            import map_equ_20180130
-            gc_r, gc_z = map_equ_20180130.get_gc()
+            import get_gc
+            gc_r, gc_z = get_gc.get_gc()
             for key in gc_r.keys():
                 self.ax_pol.plot(gc_r[key], gc_z[key], 'b-')
         except:
             print('No coordinates of wall structures available for poloidal section drawing')
 
 # Plot LOS in toroidal section
-
-        ydet = float(parse_d['xdet'])
-        ytor = [ydet, ydet]
-        xtor = [0, -float(parse_d['ydet'])]
         ntheta = 101
         theta = np.linspace(0, 2*np.pi, ntheta)
 
-        self.ax_tor = augfig.add_subplot(1, 2, 2, aspect='equal')
+        self.ax_tor = self.augfig.add_subplot(1, 2, 2, aspect='equal')
         self.ax_tor.set_xlim([-3, 4])
         self.ax_tor.set_ylim([-3, 3])
         self.ax_tor.set_xlabel('x [cm]', labelpad=2)
@@ -219,16 +224,14 @@ class FI2SPECTRUM:
         self.ax_tor.tick_params(which='major', length=4, width=0.5)
         self.tor_rmin, = self.ax_tor.plot(rmin*np.cos(theta), rmin*np.sin(theta), 'k-')
         self.tor_rmax, = self.ax_tor.plot(rmax*np.cos(theta), rmax*np.sin(theta), 'k-')
-        self.tor_los, = self.ax_tor.plot(xtor, ytor, 'r-')
+        self.tor_los, = self.ax_tor.plot([], [], 'r-')
         self.ax_tor.plot(0, 0, 'go')
         try:
-            import plot_aug
             tor_d = plot_aug.STRUCT(f_in='/afs/ipp/home/g/git/python/aug/tor.data').tor_old
-            for key, tor_pl in tor_d.iteritems():
+            for key, tor_pl in tor_d.items():
                 self.ax_tor.plot(tor_pl.x, tor_pl.y, 'b-')        
         except:
             print('No coordinates of wall structures available for toroidal section drawing')
-        plt.show()
 
 # Energy entries
 
@@ -238,7 +241,10 @@ class FI2SPECTRUM:
         n_col=0
         for key in ('Emin', 'Emax', '#Ebins', '#MC samples', 'EcutL', 'EcutH'):
             lbl = tk.Label(entframe, text=key, width=len(key))
-            var = tk.Entry(entframe, width=11)
+            wid = 7
+            if key == '#MC samples':
+                wid = 11
+            var = tk.Entry(entframe, width=wid)
             var.insert(0, en_init[key])
             lbl.pack(side=tk.LEFT)
             var.pack(side=tk.LEFT)
@@ -259,13 +265,31 @@ class FI2SPECTRUM:
         fig1frame.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         entframe.pack( side=tk.TOP, fill=tk.BOTH, expand=1)
         fig2frame.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+#        self.canv_los.draw()
+        self.los_draw()
 
 # Navigation toolbar
 
-        toolbar = NavigationToolbar2TkAgg(self.canv_nes, fig1frame)
+        toolbar = nt2tk(self.canv_nes, fig1frame)
         toolbar.update()
 
         nesframe.mainloop()
+
+
+    def los_draw(self):
+
+        parse_d = parse_los(self.flos.replace('~', home_dir))
+        Rpol = [parse_d['y1'], parse_d['y2']]
+        zpol = [parse_d['z1'], parse_d['z2']]
+        print(Rpol)
+        self.pol_los.set_data(Rpol, zpol)
+
+        ydet = float(parse_d['xdet'])
+        print('Tan. radius %8.4f' %ydet)
+        ytor = [ydet, ydet]
+        xtor = [0, -parse_d['ydet']]
+        self.tor_los.set_data(xtor, ytor)
+        self.canv_los.draw()
 
 
     def wsetup(self):
@@ -302,12 +326,7 @@ class FI2SPECTRUM:
         set_d = self.wsetup()
 
         log.info('Running LOS calculation')
-
-#        pool = Pool(cpu_count())
-#        out = pool.map(los_nesp.los_nes, [set_d for jt in range(self.nt)])
-#        pool.close()
-#        pool.join()
-       
+      
         command = '%s %s/los_nes.py' %(pre_comm, crwd)
         err = os.system(command)
 
@@ -453,7 +472,7 @@ class FI2SPECTRUM:
                 ax.set_ylabel('Counts [1/(s * cm**3)]')
                 ax.legend()
 
-            toolbar = NavigationToolbar2TkAgg(dvolcan, dvolframe)
+            toolbar = nt2tk(dvolcan, dvolframe)
             toolbar.update()
 
         elif code == 'tc':
@@ -539,14 +558,14 @@ class FI2SPECTRUM:
                 ax.set_ylabel('Counts [1/(s * cm**3)]')
                 ax.legend()
 
-            toolbar = NavigationToolbar2TkAgg(dvolcan, dvolframe)
+            toolbar = nt2tk(dvolcan, dvolframe)
             toolbar.update()
 
 
     def callcdf(self):
 
         dir_in = '%s/tr_client/AUGD' %home_dir
-        cdf_file = askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.CDF")])
+        cdf_file = tkfd.askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.CDF")])
 
 # Get separatrix {R, z}
 
@@ -574,14 +593,14 @@ class FI2SPECTRUM:
     def callasc(self):
 
         dir_in = '%s/ascot/fbm' %home_dir
-        asc_file = askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.h5")])
+        asc_file = tkfd.askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.h5")])
         self.fasc = asc_file.replace(home_dir, '~').replace(home2, '~')
         self.set_text()
 
     def callfp(self):
 
         dir_in = '%s/toric' %home_dir
-        fp_file = askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.cdf")])
+        fp_file = tkfd.askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.cdf")])
         self.ffp = fp_file.replace(home_dir, '~').replace(home2, '~')
         self.set_text()
 
@@ -589,7 +608,7 @@ class FI2SPECTRUM:
     def callfbm(self):
 
         dir_in = '%s/tr_client/AUGD' %home_dir
-        fbm_file = askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.cdf")])
+        fbm_file = tkfd.askopenfilename(initialdir=dir_in, filetypes=[("All formats", "*.cdf")])
 
         self.ffbm = fbm_file.replace(home_dir, '~').replace(home2, '~')
         self.set_text()
@@ -597,9 +616,10 @@ class FI2SPECTRUM:
 
     def calllos(self):
 
-        los_file = askopenfilename(initialdir='%s/los' %crwd, filetypes=[("All formats", "*.los")])
+        los_file = tkfd.askopenfilename(initialdir='%s/los' %crwd, filetypes=[("All formats", "*.los")])
         self.flos = los_file.replace(home_dir, '~').replace(home2, '~')
         self.set_text()
+        self.los_draw()
 
 
     def about(self):
