@@ -1,4 +1,4 @@
-from ControlRoom import units, classes #~/ControlRoom/lib/python2.7/site-packages/ControlRoom
+from ControlRoom import units, classes 
 import logging, pickle, os, datetime
 import numpy as np
 import transp, toric, ascot
@@ -94,7 +94,6 @@ def los_nes():
         x_m, y_m, z_m, C, V_m3, u1, v1, w1 = np.loadtxt(los_file, comments='/', unpack=True, dtype=float)
     except IOError:
         raise
-
     u = [float(x) for x in u1]
     v = [float(x) for x in v1]
     w = [float(x) for x in w1]
@@ -113,12 +112,9 @@ def los_nes():
         reactions = ('bt', 'th', 'bb')
     for react in reactions:
         cells[react] = []
-
     for i in range(len(x_m)):
-
         posx = classes.Vector.Cartesian(x[i], y[i], z[i])
         posv = -classes.Vector.Cartesian(u[i], v[i], w[i]).versor
-
         if code == 'tc':
 
             dist_dens = profile.dist_dens(x[i], y[i], z[i])

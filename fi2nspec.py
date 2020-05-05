@@ -145,37 +145,37 @@ class FI2SPECTRUM:
 # Figure frame
 
         fig1frame = tk.Frame(nesframe)
-        self.nesfig = Figure()
-        self.nesfig.set_size_inches((7.8, 4.7))
-        self.canv_nes = FigureCanvasTkAgg(self.nesfig, master=fig1frame)
-        self.nesfig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.82)
+        nesfig = Figure()
+        nesfig.set_size_inches((7.8, 4.7))
+        canv_nes = FigureCanvasTkAgg(nesfig, master=fig1frame)
+        nesfig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.82)
 
 # Initialise plots
 
-        self.axes1 = self.nesfig.add_subplot(1, 2, 1)
+        self.ax_nes = nesfig.add_subplot(1, 2, 1)
         self.nes_plot = {}
         for react in reacts + ('tot',):
-            self.nes_plot[react], = self.axes1.plot([], [], sym_d[react], label=titles[react])
-        self.line2452kev, = self.axes1.plot([], [], 'k-')
-        self.axes1.set_xlim((2e3, 3e3))
-        self.axes1.set_title('Energy spectrum along NE213 LOS')
-        self.axes1.legend()
+            self.nes_plot[react], = self.ax_nes.plot([], [], sym_d[react], label=titles[react])
+        self.line2452kev, = self.ax_nes.plot([], [], 'k-')
+        self.ax_nes.set_xlim((2e3, 3e3))
+        self.ax_nes.set_title('Energy spectrum along NE213 LOS')
+        self.ax_nes.legend()
 
-        self.axes2 = self.nesfig.add_subplot(1, 2, 2)
+        self.ax_phs = nesfig.add_subplot(1, 2, 2)
         self.phs_plot = {}
         for react in reacts + ('tot',):
-            self.phs_plot[react], = self.axes2.plot([], [], sym_d[react], label=titles[react])
-        self.axes2.set_xlim((0, 300))
-#        self.axes2.set_xlim((0, 4000))
-        self.axes2.set_ylim((0, 1e7))
-        self.axes2.legend()
+            self.phs_plot[react], = self.ax_phs.plot([], [], sym_d[react], label=titles[react])
+        self.ax_phs.set_xlim((0, 300))
+#        self.ax_phs.set_xlim((0, 4000))
+        self.ax_phs.set_ylim((0, 1e7))
+        self.ax_phs.legend()
 
         self.fcdf = cdf_file.replace(home_dir, '~').replace(home2, '~')
         self.ffbm = fbm_file.replace(home_dir, '~').replace(home2, '~')
         self.fasc = asc_file.replace(home_dir, '~').replace(home2, '~')
         self.flos = los_file.replace(home_dir, '~').replace(home2, '~')
         self.ffp  =  fp_file.replace(home_dir, '~').replace(home2, '~')
-        self.ftxt = self.nesfig.text(.5, .87, '%s\n%s - %s\n%s - %s' \
+        self.ftxt = nesfig.text(.5, .87, '%s\n%s - %s\n%s - %s' \
             %(self.flos, self.fcdf, self.ffbm, self.fasc, self.ffp), ha='center')
 
 
@@ -194,7 +194,7 @@ class FI2SPECTRUM:
         fig2frame = tk.Frame(nesframe)
         self.augfig = Figure()
         self.augfig.set_size_inches((4.8, 2.0))
-        self.canv_los = FigureCanvasTkAgg(self.augfig, master=fig2frame)
+        canv_los = FigureCanvasTkAgg(self.augfig, master=fig2frame)
         self.augfig.subplots_adjust(left=0.08, bottom=0.1, right=0.95, top=0.9)
 
         self.ax_pol = self.augfig.add_subplot(1, 2, 1, aspect='equal')
@@ -260,17 +260,17 @@ class FI2SPECTRUM:
         menub.config(menu=mb)
         self.en_d['reac'] = reac_lbl
 
-        self.canv_nes._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        self.canv_los._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        canv_nes._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        canv_los._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         fig1frame.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         entframe.pack( side=tk.TOP, fill=tk.BOTH, expand=1)
         fig2frame.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-#        self.canv_los.draw()
+
         self.los_draw()
 
 # Navigation toolbar
 
-        toolbar = nt2tk(self.canv_nes, fig1frame)
+        toolbar = nt2tk(canv_nes, fig1frame)
         toolbar.update()
 
         nesframe.mainloop()
@@ -289,7 +289,7 @@ class FI2SPECTRUM:
         ytor = [ydet, ydet]
         xtor = [0, -parse_d['ydet']]
         self.tor_los.set_data(xtor, ytor)
-        self.canv_los.draw()
+        self.augfig.canvas.draw()
 
 
     def wsetup(self):
@@ -376,17 +376,17 @@ class FI2SPECTRUM:
                     self.phs_plot[react].set_data(range(len(phs[react])), phs[react])
                     nes_tot += nes[react][:]
                     phs_tot += phs[react]
-            self.axes1.set_xlabel('E %s' %nes['E_NEUT'].units)
-            self.axes1.set_ylabel('Counts %s' %nes[lbln].units)
+            self.ax_nes.set_xlabel('E %s' %nes['E_NEUT'].units)
+            self.ax_nes.set_ylabel('Counts %s' %nes[lbln].units)
 
             yrange1 = [0, 1.1*np.max(nes_tot)]
             yrange2 = [0, 1.1*np.max(phs_tot)]
-            self.axes1.set_ylim(yrange1)
-            self.axes2.set_ylim(yrange2)
+            self.ax_nes.set_ylim(yrange1)
+            self.ax_phs.set_ylim(yrange2)
             self.nes_plot['tot'].set_data(nes['E_NEUT'][:], nes_tot)
             self.phs_plot['tot'].set_data(range(len(phs_tot)), phs_tot)
             self.line2452kev.set_data( [2452]*2, yrange1)
-            self.canv_nes.draw()
+            self.ax_nes.figure.canvas.draw()
 
 
     def tot_nes(self, code='tr'):
@@ -457,7 +457,7 @@ class FI2SPECTRUM:
 
             for j_spl, lbl in enumerate(reacts):
                 ax = dvolfig.add_subplot(2, 3, j_spl+1)
-                ax.plot(nes['E_NEUT'][:], nes[lbl][:], 'b-', label=nes_lbl[lbl])
+                ax.plot(Egrid, nes[lbl][:], 'b-', label=nes_lbl[lbl])
                 ax.set_title(titles[lbl]+' spectrum')
                 ax.axvline(x=2.452, color='k', linewidth=1.5)
                 ax.set_xlabel('E [MeV]')
@@ -581,14 +581,14 @@ class FI2SPECTRUM:
         self.set_text()
 
         self.pol_aug.set_data(r_sepx, z_sepx)
-        self.canv_los.draw()
+        self.augfig.canvas.draw()
 
 
     def set_text(self):
 
         self.ftxt.set_text('%s\n%s - %s\n%s - %s' %(self.flos, self.fcdf, \
                           self.ffbm, self.fasc, self.ffp))
-        self.canv_nes.draw()
+        self.ax_nes.figure.canvas.draw()
 
     def callasc(self):
 

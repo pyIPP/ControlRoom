@@ -69,21 +69,3 @@ def NES2PHS(f_nes, f_rm='/afs/ipp/home/g/git/python/neutrons/tofana/rm_bg.cdf', 
 
     print('Finished nes2phs', f_rm)
     return phs
-
-
-if __name__ == '__main__':
-
-    import matplotlib.pylab as plt
-
-    fnes = '/afs/ipp/home/g/git/python/ControlRoom/output/tr/29783A01_fi_1_nes_tr.cdf'
-
-    rm1 = '/afs/ipp/home/n/nesp/tofana/responses/simresp_aug.rsp_broad'
-    rm2 = '/afs/ipp/home/g/git/python/neutrons/tofana/sim_aug_gb.cdf'
-    resp_mat.rsp2cdf(rm1, f_cdf=rm2, src='hep')
-
-    phs1 = NES2PHS(fnes, f_rm=rm1)
-    phs2 = NES2PHS(fnes, f_rm=rm2)
-    
-    plt.plot(phs1['bt'], 'g-')
-    plt.plot(phs2['bt'], 'r-')
-    plt.show()
