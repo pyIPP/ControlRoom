@@ -39,9 +39,9 @@ def plot_los_cone(flos='aug.los'):
 
 # Plot AUG wall
     try:
-        import map_equ_20161123
-        gc_r, gc_z = map_equ_20161123.get_gc()
-        for key in gc_r.iterkeys():
+        import get_gc
+        gc_r, gc_z = get_gc.get_gc()
+        for key in gc_r.keys():
             ax1.plot(gc_r[key], gc_z[key], 'b-')
     except:
         print('No coordinates of wall structures available for poloidal section drawing')
@@ -49,7 +49,7 @@ def plot_los_cone(flos='aug.los'):
     try:
         import plot_aug
         dic = plot_aug.STRUCT().tor_old
-        for key in dic.iterkeys():
+        for key in dic.keys():
             ax2.plot(dic[key].x, dic[key].y, 'b-')
     except:
         print('No coordinates of wall structures available for toroidal section drawing')
@@ -106,7 +106,7 @@ class DET_LOS:
 
         self.geo_d = {}
         nrow=0
-        for key, val in geo_init.iteritems():
+        for key, val in geo_init.items():
             lbl = tk.Label(entframe, text=key)
             var = tk.Entry(entframe, width=enwid)
             var.insert(0, val)
@@ -120,7 +120,7 @@ class DET_LOS:
     def run(self):
 
         geo = {}
-        for key, val in self.geo_d.iteritems():
+        for key, val in self.geo_d.items():
             geo[key] = float(val.get())
         los_d = {}
         los_d['x0']    = -geo['y_det']

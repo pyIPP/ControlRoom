@@ -1,17 +1,25 @@
 import sys
+sys.path.append('/afs/ipp/aug/ads-diags/common/python/lib')
 import numpy as np
-import Tkinter as tk
+try:
+    import Tkinter as tk
+except:
+    import tkinter as tk
 import los
 
-coll_diam = 7.6e-2
+coll_diam = 8.8e-2
 # collimator wide tube 1
 #coll_diam = 1.9e-2
 # collimator narrow tube 2
 #coll_diam = 0.9e-2
 
-geo_aug = {'disk_thick':0.008, 'cell_radius':0.004, \
+geo_aug_old = {'disk_thick':0.008, 'cell_radius':0.004, \
            'coll_diam':coll_diam, 'd_det_coll': 6.50, 'det_radius':0.0254, 'tilt':0, \
            'tan_radius':0.2, 'y_det':-13.63, 'z_det':0.1, \
+           'Rmaj':1.65, 'r_chamb':0.6}
+geo_aug = {'disk_thick':0.008, 'cell_radius':0.004, \
+           'coll_diam':coll_diam, 'd_det_coll': 7.16, 'det_radius':0.0254, 'tilt':0, \
+           'tan_radius':0.4, 'y_det':-13.32, 'z_det':0.1, \
            'Rmaj':1.65, 'r_chamb':0.6}
 tok_lbl = 'aug'
 
@@ -28,7 +36,7 @@ def plot_los_cone(flos='aug.los'):
     except IOError:
         raise
     R_m = np.hypot(x_m, y_m)
-    print R_m
+    print(R_m)
 
     f = plt.figure(1,figsize=(13, 5.5))
     f.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.98)
@@ -43,9 +51,9 @@ def plot_los_cone(flos='aug.los'):
 
 # Plot AUG wall
     try:
-        import map_equ_20161123
-        gc_r, gc_z = map_equ_20161123.get_gc()
-        for key in gc_r.iterkeys():
+        import get_gc
+        gc_r, gc_z = get_gc.get_gc()
+        for key in gc_r.keys():
             ax1.plot(gc_r[key], gc_z[key], 'b-')
     except:
         print('No coordinates of wall structures available for poloidal section drawing')
@@ -53,7 +61,7 @@ def plot_los_cone(flos='aug.los'):
     try:
         import plot_aug
         dic = plot_aug.STRUCT().tor_old
-        for key in dic.iterkeys():
+        for key in dic.keys():
             ax2.plot(dic[key].x, dic[key].y, 'b-')
     except:
         print('No coordinates of wall structures available for toroidal section drawing')
@@ -109,8 +117,8 @@ class DET_LOS:
         enwid = 11
 
         self.geo_d = {}
-        nrow=0
-        for key, val in geo_init.iteritems():
+        nrow = 0
+        for key, val in geo_init.items():
             lbl = tk.Label(entframe, text=key)
             var = tk.Entry(entframe, width=enwid)
             var.insert(0, val)
@@ -124,7 +132,7 @@ class DET_LOS:
     def run(self):
 
         geo = {}
-        for key, val in self.geo_d.iteritems():
+        for key, val in self.geo_d.items():
             geo[key] = float(val.get())
         los_d = {}
         los_d['x0']    = -geo['y_det']
@@ -133,7 +141,7 @@ class DET_LOS:
         los_d['xend']  = 0 # 1 plasma crossing
 #        los_d['xend']  = geo['y_det'] # 2 plasma crossings
         los_d['theta'] = np.radians(geo['tilt'])
-        los_d['phi']   = -np.arctan(geo['tan_radius']/geo['y_det'])
+        los_d['phi']   = -np.arctan2(geo['tan_radius'], geo['y_det'])
 
         ctilt = np.cos(los_d['theta'])
         dy = geo['disk_thick']*ctilt
@@ -168,8 +176,9 @@ class DET_LOS:
         stilt = np.sin(np.radians(geo['tilt']))
         dy = geo['disk_thick']*ctilt
         coll_rad = 0.5*geo['coll_diam']
-        dist_corr = geo['d_det_coll']/(1. + geo['det_radius']/coll_rad) # scalar, r1
+        dist_corr = geo['d_det_coll']/(1. + geo['det_radius']/coll_rad) # Shifting the cone vertex to the point where lines (det-left - coll-right, det-right - coll-left) cross
         tan_cone_aper = coll_rad/dist_corr
+        print(coll_rad, dist_corr, tan_cone_aper)
         cone_aper = np.degrees(np.arctan(tan_cone_aper))
         offset = geo['d_det_coll'] - dist_corr # scalar, r2
         print('Cone aperture: %6.3f deg' %cone_aper)
